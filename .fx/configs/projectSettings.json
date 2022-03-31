@@ -1,0 +1,24 @@
+{
+    "appName": "TeamsBotDemo",
+    "projectId": "f94fd6cb-ca3e-48f1-be49-26d2b156ef0e",
+    "version": "2.1.0",
+    "isFromSample": false,
+    "solutionSettings": {
+        "name": "fx-solution-azure",
+        "version": "1.0.0",
+        "hostType": "Azure",
+        "azureResources": [],
+        "capabilities": [
+            "Bot"
+        ],
+        "activeResourcePlugins": [
+            "fx-resource-identity",
+            "fx-resource-bot",
+            "fx-resource-aad-app-for-teams",
+            "fx-resource-local-debug",
+            "fx-resource-appstudio",
+            "fx-resource-cicd"
+        ]
+    },
+    "programmingLanguage": "javascript"
+}
