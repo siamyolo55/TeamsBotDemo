@@ -11,6 +11,13 @@ class TeamsBot extends TeamsActivityHandler {
 
     // record the likeCount
     this.likeCountObj = { likeCount: 0 };
+    this.startTime = null
+    this.timeToLeave = null
+    this.leaveTime = null
+    this.loggedIn = false
+    this.pause = false
+    this.breakStartTime = null
+    this.breakTimes = []
 
     this.onMessage(async (context, next) => {
       console.log("Running with Message Activity.");
@@ -37,13 +44,106 @@ class TeamsBot extends TeamsActivityHandler {
           break;
         }
         case "who's this?": {
-            await context.sendActivity('ur mum');
-            await context.sendActivity('jk');
             await context.sendActivity('KONO DIA DA!');
             break;
         }
-        case "???":{
-          await context.sendActivity('eat shit loser')
+        case "login":{
+          if(this.loggedIn == true){
+            await context.sendActivity(`You've already logged in`)
+            break
+          }
+
+          const OFFICE_HOURS = 8
+          this.startTime = new Date()
+          let hour = String(this.startTime.getHours())
+          hour.length == 1 ? '0'+ hour : hour = hour
+          let min = String(this.startTime.getMinutes())
+          min.length == 1 ? min = '0' + min : min = min
+          this.timeToLeave = new Date(this.startTime.getTime() + OFFICE_HOURS * 60000 * 60)
+          let startReply = `Morning Siam!,  you started today at ${hour}:${min}`
+          await context.sendActivity(startReply)
+          await context.sendActivity(`You should leave at around ${this.timeToLeave.getHours()}:${this.timeToLeave.getMinutes()}`)
+          this.loggedIn = true
+          break
+        }
+        case "logout":{
+          if(this.loggedIn == false){
+            await context.sendActivity(`You need to login first`)
+            break
+          }
+          this.leaveTime = new Date()
+          let hour = String(this.leaveTime.getHours())
+          hour.length == 1 ? '0' + hour : hour = hour
+          let min = String(this.leaveTime.getMinutes())
+          min.length == 1 ? '0' + min : min = min
+          let reply = `You've logged out! Time : ${hour}:${min}`
+          await context.sendActivity(reply)
+
+          // checking whether over-time or under-time
+          if( this.timeToLeave.getTime() >= this.leaveTime.getTime() ){
+            let seconds = (this.timeToLeave.getTime() - this.leaveTime.getTime()) / 1000
+            let hours = (seconds - (seconds % 3600)) / 3600 
+            let minutes = ((seconds - (seconds % 60)) / 60) % 60
+
+            let reply = `Looks like you worked less today, ${hours*60 + minutes} minutes less.`
+            await context.sendActivity(reply)
+          }
+          else {
+            let seconds = (this.leaveTime.getTime() - this.timeToLeave.getTime()) / 1000
+            let hours = (seconds - (seconds % 3600)) / 3600 
+            let minutes = ((seconds - (seconds % 60)) / 60) % 60 
+
+            let reply = `Looks like you worked more than usual today, ${hours*60 + minutes} minutes more.`
+            await context.sendActivity(reply)
+          }
+          this.loggedIn = false
+          break
+        }
+        case "pause":{
+          if(this.loggedIn == false){
+            await context.sendActivity(`You need to login first to pause`)
+            break
+          }
+          if(this.pause == true){
+            await context.sendActivity(`Already paused`)
+            break
+          }
+          this.breakStartTime = new Date()
+          let reply = `Enjoy your break! started at ${this.breakStartTime.getHours()}:${this.breakStartTime.getMinutes()}`
+          this.pause = true
+          await context.sendActivity(reply)
+          break
+        }
+        case "unpause": {
+          if(this.loggedIn == false){
+            await context.sendActivity(`You need to login first to unpause`)
+            break
+          }
+          if(this.pause == false){
+            await context.sendActivity(`You need to pause first to unpause`)
+            break
+          }
+          let currentTime = new Date()
+          let breakSeconds = (currentTime.getTime() - this.breakStartTime.getTime()) / 1000
+          let breakMinutes = ((breakSeconds - (breakSeconds % 60)) / 60) + 1
+          let reply = `Hope you enjoyed you break, you've taken about ${breakMinutes} minute(s)`
+          this.pause = false
+          this.breakTimes.push({start: this.breakStartTime, end: currentTime})
+          await context.sendActivity(reply)
+          break
+        }
+        case "breaklist" : {
+          if(this.breakTimes.length > 0){
+            await context.sendActivity(`Here's the list of breaks you've taken today :`)
+            let cnt = 0
+            this.breakTimes.map(async (breakk) => {
+                console.log(breakk)
+                await context.sendActivity(`Break ${++cnt}: Start: ${breakk.start.getHours()}:${breakk.start.getMinutes()}, End: ${breakk.end.getHours()}:${breakk.end.getMinutes()}`)
+            })
+            break
+          }
+          await context.sendActivity(`You took no break today.`)
+          break
         }
         default:{
           // fetching message reply from django backend
@@ -52,6 +152,7 @@ class TeamsBot extends TeamsActivityHandler {
           })
           //console.log(res.data)
           await context.sendActivity(res.data.message)
+          break
         }
       }
 
