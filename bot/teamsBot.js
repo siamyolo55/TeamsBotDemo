@@ -1,9 +1,10 @@
 const axios = require("axios");
 const querystring = require("querystring");
-const { TeamsActivityHandler, CardFactory, TurnContext} = require("botbuilder");
+const { TeamsActivityHandler, CardFactory, TurnContext, TeamsInfo} = require("botbuilder");
 const rawWelcomeCard = require("./adaptiveCards/welcome.json");
 const rawLearnCard = require("./adaptiveCards/learn.json");
 const cardTools = require("@microsoft/adaptivecards-tools");
+const demoCard = require("./adaptiveCards/demo.json")
 
 class TeamsBot extends TeamsActivityHandler {
   constructor() {
@@ -19,6 +20,17 @@ class TeamsBot extends TeamsActivityHandler {
     this.breakStartTime = null
     this.breakTimes = []
 
+
+    this.dataObj = {
+      title: "Custom Adaptive Card Demo",
+      description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+      creator: {
+        name: 'Something'
+      },
+      createdUtc: "2017-02-14T06:08:39Z"
+          }
+ 
+
     this.onMessage(async (context, next) => {
       console.log("Running with Message Activity.");
       let txt = context.activity.text;
@@ -29,6 +41,7 @@ class TeamsBot extends TeamsActivityHandler {
         // Remove the line break
         txt = removedMentionText.toLowerCase().replace(/\n|\r/g, "").trim();
       }
+      const member = await TeamsInfo.getMember(context, encodeURI('asiam@thetitantech.com'))
 
       // Trigger command by IM text
       switch (txt) {
@@ -42,6 +55,14 @@ class TeamsBot extends TeamsActivityHandler {
           const card = cardTools.AdaptiveCards.declare(rawLearnCard).render(this.likeCountObj);
           await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] });
           break;
+        }
+        case "send card": {
+          // setting name to member.name to render on card
+          this.dataObj.creator.name = member.name
+          this.dataObj.createdUtc = new Date()
+          const card = cardTools.AdaptiveCards.declare(demoCard).render(this.dataObj)
+          await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+          break
         }
         case "who's this?": {
             await context.sendActivity('KONO DIA DA!');
@@ -60,7 +81,7 @@ class TeamsBot extends TeamsActivityHandler {
           let min = String(this.startTime.getMinutes())
           min.length == 1 ? min = '0' + min : min = min
           this.timeToLeave = new Date(this.startTime.getTime() + OFFICE_HOURS * 60000 * 60)
-          let startReply = `Morning Siam!,  you started today at ${hour}:${min}`
+          let startReply = `Morning ${member.name}!  you started today at ${hour}:${min}`
           await context.sendActivity(startReply)
           await context.sendActivity(`You should leave at around ${this.timeToLeave.getHours()}:${this.timeToLeave.getMinutes()}`)
           this.loggedIn = true
@@ -82,7 +103,7 @@ class TeamsBot extends TeamsActivityHandler {
           // checking whether over-time or under-time
           if( this.timeToLeave.getTime() >= this.leaveTime.getTime() ){
             let seconds = (this.timeToLeave.getTime() - this.leaveTime.getTime()) / 1000
-            let hours = (seconds - (seconds % 3600)) / 3600 
+            let hours = (seconds - (seconds % 3600)) / 3600
             let minutes = ((seconds - (seconds % 60)) / 60) % 60
 
             let reply = `Looks like you worked less today, ${hours*60 + minutes} minutes less.`
