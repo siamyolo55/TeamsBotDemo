@@ -20,5 +20,10 @@
             "fx-resource-cicd"
         ]
     },
-    "programmingLanguage": "javascript"
+    "programmingLanguage": "javascript",
+    "pluginSettings": {
+        "fx-resource-bot": {
+            "capabilities": []
+        }
+    }
 }

@@ -1,0 +1,29 @@
+{
+    "type": "AdaptiveCard",
+    "body": [
+        {
+            "type": "TextBlock",
+            "size": "Medium",
+            "weight": "Bolder",
+            "text": "${title}"
+        },
+        {
+            "type": "TextBlock",
+            "size": "Medium",
+            "weight": "Bolder",
+            "text": "${description}"
+        },
+        {
+            "type": "TextBlock",
+            "text": "You logged in today at ${loginTime}",
+            "wrap": true
+        },
+        {
+            "type": "TextBlock",
+            "text": "Probable time of leave at ${timeToLeave}",
+            "wrap": true
+        }
+    ],
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.4"
+}

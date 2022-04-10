@@ -5,6 +5,14 @@ const rawWelcomeCard = require("./adaptiveCards/welcome.json");
 const rawLearnCard = require("./adaptiveCards/learn.json");
 const cardTools = require("@microsoft/adaptivecards-tools");
 const demoCard = require("./adaptiveCards/demo.json")
+const loginCard = require('./adaptiveCards/login.json')
+const breakCard = require('./adaptiveCards/break.json')
+const logoutCard = require('./adaptiveCards/logout.json')
+const formattedTime = require('./utils/timeFormat')
+const morningTexts = require('./utils/randomLoginDesciption')
+const breakTexts = require('./utils/breakTexts')
+const byeTexts = require('./utils/randomLogoutDescriptions')
+
 
 class TeamsBot extends TeamsActivityHandler {
   constructor() {
@@ -18,18 +26,24 @@ class TeamsBot extends TeamsActivityHandler {
     this.loggedIn = false
     this.pause = false
     this.breakStartTime = null
+    this.OFFICE_HOURS = 8
     this.breakTimes = []
 
 
     this.dataObj = {
       title: "Custom Adaptive Card Demo",
-      description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+      description: "zxcv",
       creator: {
         name: 'Something'
       },
       createdUtc: "2017-02-14T06:08:39Z"
-          }
- 
+    }
+    this.loginData = {
+      title: "Login Successful",
+      description: "Good Morning",
+      loginTime: this.startTime,
+      timeToLeave: this.timeToLeave
+    }
 
     this.onMessage(async (context, next) => {
       console.log("Running with Message Activity.");
@@ -44,139 +58,128 @@ class TeamsBot extends TeamsActivityHandler {
       const member = await TeamsInfo.getMember(context, encodeURI('asiam@thetitantech.com'))
 
       // Trigger command by IM text
-      switch (txt) {
-        case "welcome": {
-          const card = cardTools.AdaptiveCards.declareWithoutData(rawWelcomeCard).render();
-          await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] });
-          break;
-        }
-        case "learn": {
-          this.likeCountObj.likeCount = 0;
-          const card = cardTools.AdaptiveCards.declare(rawLearnCard).render(this.likeCountObj);
-          await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] });
-          break;
-        }
-        case "send card": {
-          // setting name to member.name to render on card
-          this.dataObj.creator.name = member.name
-          this.dataObj.createdUtc = new Date()
-          const card = cardTools.AdaptiveCards.declare(demoCard).render(this.dataObj)
-          await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
-          break
-        }
-        case "who's this?": {
-            await context.sendActivity('KONO DIA DA!');
-            break;
-        }
-        case "login":{
-          if(this.loggedIn == true){
-            await context.sendActivity(`You've already logged in`)
-            break
-          }
-
-          const OFFICE_HOURS = 8
-          this.startTime = new Date()
-          let hour = String(this.startTime.getHours())
-          hour.length == 1 ? '0'+ hour : hour = hour
-          let min = String(this.startTime.getMinutes())
-          min.length == 1 ? min = '0' + min : min = min
-          this.timeToLeave = new Date(this.startTime.getTime() + OFFICE_HOURS * 60000 * 60)
-          let startReply = `Morning ${member.name}!  you started today at ${hour}:${min}`
-          await context.sendActivity(startReply)
-          await context.sendActivity(`You should leave at around ${this.timeToLeave.getHours()}:${this.timeToLeave.getMinutes()}`)
-          this.loggedIn = true
-          break
-        }
-        case "logout":{
-          if(this.loggedIn == false){
-            await context.sendActivity(`You need to login first`)
-            break
-          }
-          this.leaveTime = new Date()
-          let hour = String(this.leaveTime.getHours())
-          hour.length == 1 ? '0' + hour : hour = hour
-          let min = String(this.leaveTime.getMinutes())
-          min.length == 1 ? '0' + min : min = min
-          let reply = `You've logged out! Time : ${hour}:${min}`
-          await context.sendActivity(reply)
-
-          // checking whether over-time or under-time
-          if( this.timeToLeave.getTime() >= this.leaveTime.getTime() ){
-            let seconds = (this.timeToLeave.getTime() - this.leaveTime.getTime()) / 1000
-            let hours = (seconds - (seconds % 3600)) / 3600
-            let minutes = ((seconds - (seconds % 60)) / 60) % 60
-
-            let reply = `Looks like you worked less today, ${hours*60 + minutes} minutes less.`
-            await context.sendActivity(reply)
-          }
-          else {
-            let seconds = (this.leaveTime.getTime() - this.timeToLeave.getTime()) / 1000
-            let hours = (seconds - (seconds % 3600)) / 3600 
-            let minutes = ((seconds - (seconds % 60)) / 60) % 60 
-
-            let reply = `Looks like you worked more than usual today, ${hours*60 + minutes} minutes more.`
-            await context.sendActivity(reply)
-          }
-          this.loggedIn = false
-          break
-        }
-        case "pause":{
-          if(this.loggedIn == false){
-            await context.sendActivity(`You need to login first to pause`)
-            break
-          }
-          if(this.pause == true){
-            await context.sendActivity(`Already paused`)
-            break
-          }
-          this.breakStartTime = new Date()
-          let reply = `Enjoy your break! started at ${this.breakStartTime.getHours()}:${this.breakStartTime.getMinutes()}`
-          this.pause = true
-          await context.sendActivity(reply)
-          break
-        }
-        case "unpause": {
-          if(this.loggedIn == false){
-            await context.sendActivity(`You need to login first to unpause`)
-            break
-          }
-          if(this.pause == false){
-            await context.sendActivity(`You need to pause first to unpause`)
-            break
-          }
-          let currentTime = new Date()
-          let breakSeconds = (currentTime.getTime() - this.breakStartTime.getTime()) / 1000
-          let breakMinutes = ((breakSeconds - (breakSeconds % 60)) / 60) + 1
-          let reply = `Hope you enjoyed you break, you've taken about ${breakMinutes} minute(s)`
-          this.pause = false
-          this.breakTimes.push({start: this.breakStartTime, end: currentTime})
-          await context.sendActivity(reply)
-          break
-        }
-        case "breaklist" : {
-          if(this.breakTimes.length > 0){
-            await context.sendActivity(`Here's the list of breaks you've taken today :`)
-            let cnt = 0
-            this.breakTimes.map(async (breakk) => {
-                console.log(breakk)
-                await context.sendActivity(`Break ${++cnt}: Start: ${breakk.start.getHours()}:${breakk.start.getMinutes()}, End: ${breakk.end.getHours()}:${breakk.end.getMinutes()}`)
-            })
-            break
-          }
-          await context.sendActivity(`You took no break today.`)
-          break
-        }
-        default:{
-          // fetching message reply from django backend
-          let res = await axios.post('http://127.0.0.1:8000/images/get_bot_response/',{
-            message: txt
-          })
-          //console.log(res.data)
-          await context.sendActivity(res.data.message)
-          break
-        }
+      if(txt === "welcome"){
+        const card = cardTools.AdaptiveCards.declareWithoutData(rawWelcomeCard).render()
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
       }
-
+      else if(txt === "learn"){
+        const card = cardTools.AdaptiveCards.declare(rawLearnCard).render(this.likeCountObj)
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+      }
+      else if(txt === "send card"){
+        this.dataObj.creator.name = member.name
+        this.dataObj.createdUtc = new Date()
+        const card = cardTools.AdaptiveCards.declare(demoCard).render(this.dataObj)
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+      }
+      else if(txt === "whos's this?"){
+        await context.sendActivity('KONO DIA DA!');
+      }
+      else if(txt === "login" ){
+        if(this.loggedIn == true){
+          await context.sendActivity(`You've already logged in`)
+          return
+        }
+        this.loginData.loginTime = new Date()
+        this.startTime = this.loginData.loginTime
+        let {startTime, timeToLeave} = formattedTime(this.loginData.loginTime)
+        this.loginData.loginTime = startTime
+        this.loginData.timeToLeave = timeToLeave
+        let loginDescription = morningTexts[Math.floor(Math.random() * morningTexts.length)]
+        this.timeToLeave = new Date(this.startTime.getTime() + this.OFFICE_HOURS * 60000 * 60)
+        this.loginData.description = loginDescription + member.name
+        const card = cardTools.AdaptiveCards.declare(loginCard).render(this.loginData)
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+        this.loggedIn = true
+      }
+      else if(txt === "logout"){
+        if(this.loggedIn == false){
+          await context.sendActivity(`You need to login first`)
+          return
+        }
+        this.leaveTime = new Date()
+        let {startTime, leaveTime} = formattedTime( this.leaveTime )
+        let absTime = Math.abs((this.leaveTime.getTime() - this.timeToLeave.getTime()) / 1000)
+        let hours = String((absTime - absTime % 3600) / 3600)
+        hours.length == 1 ? hours = '0' + String(hours) : hours = hours
+        let minutes = String(((absTime - absTime % 60) / 60) % 60)
+        minutes.length == 1 ? minutes = '0' + String(minutes) : minutes = minutes
+        let reply = {
+          title: "Logout Successful",
+          description: byeTexts[Math.floor(Math.random() * byeTexts.length)] + member.name,
+          firstLine: `You've logged out ${startTime}`,
+          output: ""
+        }
+        let timeDiff =  hours + ':' + minutes
+  
+        // checking whether over-time or under-time
+        if( this.timeToLeave.getTime() >= this.leaveTime.getTime() ){
+          reply.output = `Looks like you worked ${timeDiff} hour(s) less today`
+        }
+        else { 
+          reply.output = `Looks like you worked ${timeDiff} hour(s) today, kudos!`
+        }
+        const card = cardTools.AdaptiveCards.declare(logoutCard).render(reply)
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+        await context.sendActivity
+        this.loggedIn = false
+      }
+      else if(txt === "pause"){
+        if(this.loggedIn == false){
+          await context.sendActivity(`You need to login first to pause`)
+          return
+        }
+        if(this.pause == true){
+          await context.sendActivity(`Already paused`)
+          return
+        }
+        this.breakStartTime = new Date()
+        let {startTime, timeToLeave} = formattedTime(this.breakStartTime)
+        let breakObj = {
+          title: "Break started",
+          description: breakTexts[Math.floor(Math.random() * breakTexts.length)],
+          startTime: startTime
+        }
+        this.pause = true
+        const card = cardTools.AdaptiveCards.declare(breakCard).render(breakObj)
+        await context.sendActivity({ attachments: [CardFactory.adaptiveCard(card)] })
+      }
+      else if(txt === "unpause"){
+        if(this.loggedIn == false){
+          await context.sendActivity(`You need to login first to unpause`)
+          return
+        }
+        if(this.pause == false){
+          await context.sendActivity(`You need to pause first to unpause`)
+          return
+        }
+        let currentTime = new Date()
+        let breakSeconds = (currentTime.getTime() - this.breakStartTime.getTime()) / 1000
+        let breakMinutes = ((breakSeconds - (breakSeconds % 60)) / 60) + 1
+        let reply = `Hope you enjoyed you break, you've taken about ${breakMinutes} minute(s)`
+        this.pause = false
+        this.breakTimes.push({start: this.breakStartTime, end: currentTime})
+        await context.sendActivity(reply)
+      }
+      else if(txt === "breaklist"){
+        if(this.breakTimes.length > 0){
+          await context.sendActivity(`Here's the list of breaks you've taken today :`)
+          let cnt = 0
+          this.breakTimes.map(async (breakk) => {
+              console.log(breakk)
+              await context.sendActivity(`Break ${++cnt}: Start: ${breakk.start.getHours()}:${breakk.start.getMinutes()}, End: ${breakk.end.getHours()}:${breakk.end.getMinutes()}`)
+          })
+        }
+        await context.sendActivity(`You took no break today.`)
+      }
+      else {
+        // fetching message reply from django backend
+        let res = await axios.post('http://127.0.0.1:8000/images/get_bot_response/',{
+          message: txt
+        })
+        //console.log(res.data)
+        await context.sendActivity(res.data.message)
+      }
       // By calling next() you ensure that the next BotHandler is run.
       await next();
     });
