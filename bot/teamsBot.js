@@ -53,6 +53,7 @@ class TeamsBot extends TeamsActivityHandler {
       );
       if (removedMentionText) {
         // Remove the line break
+        
         txt = removedMentionText.toLowerCase().replace(/\n|\r/g, "").trim();
       }
       const member = await TeamsInfo.getMember(context, encodeURI('asiam@thetitantech.com'))

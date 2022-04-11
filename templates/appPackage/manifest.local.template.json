@@ -48,6 +48,22 @@
                         {
                             "title": "learn",
                             "description": "Learn about Adaptive Card and Bot Command"
+                        },
+                        {
+                            "title": "login",
+                            "description": "logs you in"
+                        },
+                        {
+                            "title": "logout",
+                            "description": "logs you out"
+                        },
+                        {
+                            "title": "pause",
+                            "description": "starts a break timer"
+                        },
+                        {
+                            "title": "unpause",
+                            "description": "ends the break timer"
                         }
                     ]
                 }

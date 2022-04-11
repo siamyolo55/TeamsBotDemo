@@ -55,19 +55,6 @@
     ],
     "compounds": [
         {
-            "name": "Debug (Edge)",
-            "configurations": [
-                "Launch Bot (Edge)",
-                "Attach to Bot"
-            ],
-            "preLaunchTask": "Pre Debug Check & Start All",
-            "presentation": {
-                "group": "all",
-                "order": 1
-            },
-            "stopAll": true
-        },
-        {
             "name": "Debug (Chrome)",
             "configurations": [
                 "Launch Bot (Chrome)",
